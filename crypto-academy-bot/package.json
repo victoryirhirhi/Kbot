@@ -1,0 +1,11 @@
+{
+    "name": "crypto-academy-bot",
+    "version": "1.0.0",
+    "description": "Crypto Academy Telegram Bot on Vercel",
+    "main": "api/webhook.js",
+    "dependencies": {
+      "telegraf": "^4.17.0"
+    },
+    "type": "module"
+  }
+  
