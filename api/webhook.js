@@ -1,140 +1,54 @@
-import { Telegraf } from "telegraf";
-import { LESSONS } from "../lessons.js";
+import { Telegraf, Markup } from "telegraf";
 import { BOT_TOKEN } from "../config.js";
+import lessons from "../lessons.js";
 
 const bot = new Telegraf(BOT_TOKEN);
+
+// Track users' progress in-memory (for demo)
 const userProgress = {};
 
-bot.start((ctx) => {
-  ctx.reply("Welcome to Crypto Academy 📚\n\nChoose your level:", {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: "🟢 Novice", callback_data: "Novice" }],
-        [{ text: "🟡 Intermediate", callback_data: "Intermediate" }],
-        [{ text: "🔴 Professional", callback_data: "Professional" }]
-      ]
-    }
-  });
-});
-
-bot.on("callback_query", (ctx) => {
-  const level = ctx.update.callback_query.data;
-  const userId = ctx.from.id;
-
-  if (LESSONS[level] && LESSONS[level].length > 0) {
-    userProgress[userId] = { level, lessonIndex: 0, partIndex: 0 };
-
-    const lesson = LESSONS[level][0];
-    ctx.replyWithMarkdown(`📘 *${lesson.title}*\n\n${lesson.content[0]}`, {
-      reply_markup: {
-        inline_keyboard: [[{ text: "Next ➡️", callback_data: "next_part" }]]
-      }
-    });
-  } else {
-    ctx.reply("Lessons coming soon 🚧");
-  }
-});
-
-bot.action("next_part", (ctx) => {
-  const userId = ctx.from.id;
-  const progress = userProgress[userId];
-  if (!progress) return ctx.reply("Please choose a level first with /start");
-
-  const lessons = LESSONS[progress.level];
-  const lesson = lessons[progress.lessonIndex];
-
-  progress.partIndex++;
-
-  if (progress.partIndex < lesson.content.length) {
-    ctx.replyWithMarkdown(lesson.content[progress.partIndex], {
-      reply_markup: {
-        inline_keyboard: [[{ text: "Next ➡️", callback_data: "next_part" }]]
-      }
-    });
-  } else {
-    ctx.reply("🎯 You've completed this lesson!", {
-      reply_markup: {
-        inline_keyboard: [[{ text: "Take Quiz 📝", callback_data: "quiz" }]]
-      }
-    });
-  }
-});
-
-bot.action("quiz", (ctx) => {
-  const userId = ctx.from.id;
-  const progress = userProgress[userId];
-  const lesson = LESSONS[progress.level][progress.lessonIndex];
-
-  progress.quizIndex = 0;
-  sendQuizQuestion(ctx, lesson, progress);
-});
-
-function sendQuizQuestion(ctx, lesson, progress) {
-  const q = lesson.quiz[progress.quizIndex];
-  ctx.reply(q.q, {
-    reply_markup: {
-      inline_keyboard: q.options.map((opt, i) => [
-        { text: opt, callback_data: `answer_${i}` }
-      ])
-    }
-  });
+function getLesson(userId) {
+  const index = userProgress[userId] || 0;
+  return lessons[index];
 }
 
-bot.action(/answer_(\d+)/, (ctx) => {
-  const userId = ctx.from.id;
-  const progress = userProgress[userId];
-  const lessons = LESSONS[progress.level];
-  const lesson = lessons[progress.lessonIndex];
-  const userAnswer = Number(ctx.match[1]);
-  const correct = lesson.quiz[progress.quizIndex].answer;
+function getNextLesson(userId) {
+  userProgress[userId] = (userProgress[userId] || 0) + 1;
+  return getLesson(userId);
+}
 
-  if (userAnswer === correct) {
-    ctx.reply("✅ Correct!");
-  } else {
-    ctx.reply("❌ Incorrect. Try to review the lesson.");
-  }
-
-  progress.quizIndex++;
-  if (progress.quizIndex < lesson.quiz.length) {
-    sendQuizQuestion(ctx, lesson, progress);
-  } else {
-    // After quiz ends
-    const hasNext = progress.lessonIndex + 1 < lessons.length;
-
-    ctx.reply("🎉 Quiz completed!", {
-      reply_markup: {
-        inline_keyboard: hasNext
-          ? [[{ text: "Next Lesson ➡️", callback_data: "next_lesson" }]]
-          : [[{ text: "🏁 Back to Menu", callback_data: "menu" }]]
-      }
-    });
-  }
+bot.start((ctx) => {
+  userProgress[ctx.from.id] = 0;
+  const lesson = getLesson(ctx.from.id);
+  ctx.reply(
+    `📘 *${lesson.title}*\n\n${lesson.content}`,
+    {
+      parse_mode: "Markdown",
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback("➡️ Next Lesson", "next_lesson")]
+      ])
+    }
+  );
 });
 
 bot.action("next_lesson", (ctx) => {
-  const userId = ctx.from.id;
-  const progress = userProgress[userId];
-  progress.lessonIndex++;
-  progress.partIndex = 0;
+  const lesson = getNextLesson(ctx.from.id);
 
-  const lesson = LESSONS[progress.level][progress.lessonIndex];
-  ctx.replyWithMarkdown(`📘 *${lesson.title}*\n\n${lesson.content[0]}`, {
-    reply_markup: {
-      inline_keyboard: [[{ text: "Next ➡️", callback_data: "next_part" }]]
-    }
-  });
-});
+  if (!lesson) {
+    return ctx.editMessageText("🎉 You've completed all lessons!", {
+      parse_mode: "Markdown"
+    });
+  }
 
-bot.action("menu", (ctx) => {
-  ctx.reply("Choose your level:", {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: "🟢 Novice", callback_data: "Novice" }],
-        [{ text: "🟡 Intermediate", callback_data: "Intermediate" }],
-        [{ text: "🔴 Professional", callback_data: "Professional" }]
-      ]
+  ctx.editMessageText(
+    `📘 *${lesson.title}*\n\n${lesson.content}`,
+    {
+      parse_mode: "Markdown",
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback("➡️ Next Lesson", "next_lesson")]
+      ])
     }
-  });
+  );
 });
 
 export default async function handler(req, res) {
