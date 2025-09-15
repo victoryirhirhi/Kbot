@@ -4,7 +4,7 @@ import lessons from "../lessons.js";
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// Track users' progress in-memory (for demo)
+// Track users' progress
 const userProgress = {};
 
 function getLesson(userId) {
@@ -17,36 +17,35 @@ function getNextLesson(userId) {
   return getLesson(userId);
 }
 
-bot.start((ctx) => {
+bot.start(async (ctx) => {
   userProgress[ctx.from.id] = 0;
   const lesson = getLesson(ctx.from.id);
-  ctx.reply(
+  if (!lesson) return ctx.reply("No lessons found.");
+  await ctx.reply(
     `📘 *${lesson.title}*\n\n${lesson.content}`,
     {
       parse_mode: "Markdown",
-      ...Markup.inlineKeyboard([
-        [Markup.button.callback("➡️ Next Lesson", "next_lesson")]
-      ])
+      reply_markup: {
+        inline_keyboard: [[{ text: "➡️ Next Lesson", callback_data: "next_lesson" }]]
+      }
     }
   );
 });
 
-bot.action("next_lesson", (ctx) => {
+bot.action("next_lesson", async (ctx) => {
   const lesson = getNextLesson(ctx.from.id);
 
   if (!lesson) {
-    return ctx.editMessageText("🎉 You've completed all lessons!", {
-      parse_mode: "Markdown"
-    });
+    return ctx.editMessageText("🎉 You've completed all lessons!");
   }
 
-  ctx.editMessageText(
+  await ctx.editMessageText(
     `📘 *${lesson.title}*\n\n${lesson.content}`,
     {
       parse_mode: "Markdown",
-      ...Markup.inlineKeyboard([
-        [Markup.button.callback("➡️ Next Lesson", "next_lesson")]
-      ])
+      reply_markup: {
+        inline_keyboard: [[{ text: "➡️ Next Lesson", callback_data: "next_lesson" }]]
+      }
     }
   );
 });
@@ -56,7 +55,13 @@ export default async function handler(req, res) {
     return res.status(200).send("Webhook function exists!");
   }
   if (req.method === "POST") {
-    await bot.handleUpdate(req.body, res);
+    try {
+      await bot.handleUpdate(req.body);
+      res.status(200).end();
+    } catch (err) {
+      console.error("Error handling update:", err);
+      res.status(500).send("Bot error");
+    }
   } else {
     res.status(405).send("Method Not Allowed");
   }
