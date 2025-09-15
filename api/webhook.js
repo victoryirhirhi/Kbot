@@ -1,73 +1,75 @@
-import { Telegraf, Markup } from "telegraf";
+import { Telegraf } from "telegraf";
 import { BOT_TOKEN } from "../config.js";
+import { LESSONS } from "../lessons.js";
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// 📌 Start Command - Show Menu
+// In-memory progress: { [userId]: { level, index } }
+const progress = {};
+
 bot.start((ctx) => {
-  return ctx.reply(
-    "📚 Welcome to Crypto Academy!\nChoose a topic to begin learning:",
-    Markup.inlineKeyboard([
-      [Markup.button.callback("📖 What is Crypto?", "lesson_intro")],
-      [Markup.button.callback("💱 Trading Basics", "lesson_trading")],
-      [Markup.button.callback("🪙 Blockchain & Web3", "lesson_blockchain")],
-      [Markup.button.callback("📊 Risk Management", "lesson_risk")]
-    ])
-  );
+  ctx.reply("Welcome to Crypto Academy! Choose your level:", {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "🟢 Novice", callback_data: "level:novice" }],
+        [{ text: "🟡 Intermediate", callback_data: "level:intermediate" }],
+        [{ text: "🔴 Professional", callback_data: "level:professional" }]
+      ]
+    }
+  });
 });
 
-// 📘 Lessons
-bot.action("lesson_intro", (ctx) => {
-  ctx.answerCbQuery();
-  ctx.reply(
-    "💡 *What is Crypto?*\n\nCryptocurrency is digital money secured by cryptography, decentralized, and powered by blockchain technology.",
-    { parse_mode: "Markdown" }
-  );
-});
+bot.on("callback_query", (ctx) => {
+  const data = ctx.callbackQuery.data;
+  const userId = ctx.from.id;
 
-bot.action("lesson_trading", (ctx) => {
-  ctx.answerCbQuery();
-  ctx.reply(
-    "📈 *Trading Basics*\n\nTrading involves buying crypto low and selling high. Learn about spot, futures, and leverage trading gradually.",
-    { parse_mode: "Markdown" }
-  );
-});
-
-bot.action("lesson_blockchain", (ctx) => {
-  ctx.answerCbQuery();
-  ctx.reply(
-    "🪙 *Blockchain & Web3*\n\nBlockchain is a decentralized ledger. Web3 brings ownership, smart contracts, and decentralization to the internet.",
-    { parse_mode: "Markdown" }
-  );
-});
-
-bot.action("lesson_risk", (ctx) => {
-  ctx.answerCbQuery();
-  ctx.reply(
-    "⚠️ *Risk Management*\n\nNever risk more than you can lose. Use stop losses, proper position sizing, and avoid emotional trading.",
-    { parse_mode: "Markdown" }
-  );
-});
-
-// 📩 Generic fallback
-bot.on("text", (ctx) => {
-  ctx.reply("Type /start to open the main menu 📚");
-});
-
-export default async function handler(req, res) {
-  if (req.method === "GET") {
-    return res.status(200).send("Webhook function exists!");
+  if (data.startsWith("level:")) {
+    const level = data.split(":")[1];
+    progress[userId] = { level, index: 0 };
+    sendLesson(ctx, userId);
+  } else if (data === "next") {
+    progress[userId].index++;
+    sendLesson(ctx, userId);
+  } else if (data === "prev") {
+    progress[userId].index--;
+    sendLesson(ctx, userId);
+  } else if (data === "menu") {
+    ctx.reply("Choose your level:", {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🟢 Novice", callback_data: "level:novice" }],
+          [{ text: "🟡 Intermediate", callback_data: "level:intermediate" }],
+          [{ text: "🔴 Professional", callback_data: "level:professional" }]
+        ]
+      }
+    });
   }
 
-  if (req.method === "POST") {
-    try {
-      await bot.handleUpdate(req.body);
-      return res.status(200).end();
-    } catch (error) {
-      console.error("Bot error:", error);
-      return res.status(500).send("Bot error");
+  ctx.answerCbQuery();
+});
+
+function sendLesson(ctx, userId) {
+  const { level, index } = progress[userId];
+  const lesson = LESSONS[level][index];
+
+  const buttons = [];
+  if (index > 0) buttons.push({ text: "⬅ Prev", callback_data: "prev" });
+  if (index < LESSONS[level].length - 1)
+    buttons.push({ text: "Next ➡", callback_data: "next" });
+
+  ctx.editMessageText(`*${lesson.title}*\n\n${lesson.content}`, {
+    parse_mode: "Markdown",
+    reply_markup: {
+      inline_keyboard: [buttons, [{ text: "📖 Menu", callback_data: "menu" }]]
     }
+  });
+}
+
+export default async function handler(req, res) {
+  if (req.method === "GET") return res.status(200).send("Webhook is live!");
+  if (req.method === "POST") {
+    await bot.handleUpdate(req.body, res);
   } else {
-    return res.status(405).send("Method Not Allowed");
+    res.status(405).send("Method Not Allowed");
   }
 }
