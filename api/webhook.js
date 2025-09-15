@@ -3,8 +3,6 @@ import { LESSONS } from "../lessons.js";
 import { BOT_TOKEN } from "../config.js";
 
 const bot = new Telegraf(BOT_TOKEN);
-
-// Track user progress
 const userProgress = {};
 
 bot.start((ctx) => {
@@ -85,7 +83,8 @@ function sendQuizQuestion(ctx, lesson, progress) {
 bot.action(/answer_(\d+)/, (ctx) => {
   const userId = ctx.from.id;
   const progress = userProgress[userId];
-  const lesson = LESSONS[progress.level][progress.lessonIndex];
+  const lessons = LESSONS[progress.level];
+  const lesson = lessons[progress.lessonIndex];
   const userAnswer = Number(ctx.match[1]);
   const correct = lesson.quiz[progress.quizIndex].answer;
 
@@ -99,8 +98,43 @@ bot.action(/answer_(\d+)/, (ctx) => {
   if (progress.quizIndex < lesson.quiz.length) {
     sendQuizQuestion(ctx, lesson, progress);
   } else {
-    ctx.reply("🎉 Quiz completed! Type /start to choose another lesson.");
+    // After quiz ends
+    const hasNext = progress.lessonIndex + 1 < lessons.length;
+
+    ctx.reply("🎉 Quiz completed!", {
+      reply_markup: {
+        inline_keyboard: hasNext
+          ? [[{ text: "Next Lesson ➡️", callback_data: "next_lesson" }]]
+          : [[{ text: "🏁 Back to Menu", callback_data: "menu" }]]
+      }
+    });
   }
+});
+
+bot.action("next_lesson", (ctx) => {
+  const userId = ctx.from.id;
+  const progress = userProgress[userId];
+  progress.lessonIndex++;
+  progress.partIndex = 0;
+
+  const lesson = LESSONS[progress.level][progress.lessonIndex];
+  ctx.replyWithMarkdown(`📘 *${lesson.title}*\n\n${lesson.content[0]}`, {
+    reply_markup: {
+      inline_keyboard: [[{ text: "Next ➡️", callback_data: "next_part" }]]
+    }
+  });
+});
+
+bot.action("menu", (ctx) => {
+  ctx.reply("Choose your level:", {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "🟢 Novice", callback_data: "Novice" }],
+        [{ text: "🟡 Intermediate", callback_data: "Intermediate" }],
+        [{ text: "🔴 Professional", callback_data: "Professional" }]
+      ]
+    }
+  });
 });
 
 export default async function handler(req, res) {
