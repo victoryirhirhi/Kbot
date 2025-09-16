@@ -1,199 +1,239 @@
-export const LESSONS = {
-  "Novice": [
+export const lessons = {
+  novice: [
     {
       title: "What is Cryptocurrency",
-      content: `
-**Introduction**
-:contentReference[oaicite:0]{index=0} is a form of digital money that exists only online and uses cryptography (advanced math) to secure transactions. Unlike traditional currencies (like USD or NGN), no central bank or government controls it. It operates on decentralized networks called blockchains.
+      content: `Cryptocurrency is a digital form of money designed to work as a medium of exchange without relying on banks or governments. 
+It uses cryptography (complex mathematical algorithms) to secure transactions, control the creation of new coins, and verify transfers.
 
-**Key Features**
-- 💻 Digital — exists only online
-- 🏦 Decentralized — no central authority
-- 🔐 Secure — protected by cryptography
-- 🌍 Global — can be sent anywhere instantly
+🔑 Key Points:
+- Works on peer-to-peer networks
+- Uses decentralized ledgers called blockchains
+- Examples: Bitcoin, Ethereum, Solana
+- Not printed like paper money; exists only digitally
 
-**Examples**
-Popular cryptocurrencies include :contentReference[oaicite:1]{index=1} (BTC), :contentReference[oaicite:2]{index=2} (ETH), and :contentReference[oaicite:3]{index=3}.
-
-**Why It Matters**
-- Enables fast, low-cost cross-border payments
-- Provides access to financial tools for the unbanked
-- Offers alternative investment opportunities
-`
+💡 Why It Matters:
+Cryptocurrencies enable fast, borderless payments and give people control of their own money without needing permission from banks.`
     },
     {
       title: "How Blockchain Works",
-      content: `
-**Introduction**
-:contentReference[oaicite:4]{index=4} is the technology that powers cryptocurrencies. It is like a public digital ledger stored across thousands of computers worldwide.
+      content: `A blockchain is a digital ledger or database that stores data in blocks linked together chronologically.
 
-**How It Works**
-- New transactions are grouped into blocks
-- Each block is verified by many computers (nodes)
-- Verified blocks are linked together in a chain
+Each block contains:
+- A list of recent transactions
+- A timestamp
+- A reference (hash) of the previous block
 
-**Key Properties**
-- 🔒 Immutable — data can’t be changed once added  
-- 🌐 Distributed — everyone has a copy  
-- 👁️ Transparent — anyone can view it  
-- ⚡ Secure — uses cryptography
-`
+Once added, blocks are nearly impossible to change. This makes the blockchain tamper-proof and transparent to everyone.
+
+💡 Example:
+If Alice sends Bob 1 BTC, this transaction is verified by many computers (nodes) and added permanently to the blockchain, visible to anyone.`
     },
     {
-      title: "Setting up Crypto Wallets",
-      content: `
-**What is a Wallet**
-A :contentReference[oaicite:5]{index=5} stores your private keys (digital passwords) and allows you to send, receive, and hold cryptocurrencies.
+      title: "Setting up Wallets",
+      content: `A crypto wallet is a tool that lets you store, send, and receive cryptocurrencies.
 
-**Types of Wallets**
-- **Hot Wallets** (online): Apps like :contentReference[oaicite:6]{index=6}, :contentReference[oaicite:7]{index=7} — convenient but less secure
-- **Cold Wallets** (offline): Hardware like :contentReference[oaicite:8]{index=8} or :contentReference[oaicite:9]{index=9} — very secure but less convenient
+There are two main types:
+- **Hot Wallets:** Connected to the internet (mobile/web wallets like :contentReference[oaicite:1]{index=1} or :contentReference[oaicite:2]{index=2}). Easy to use but less secure.
+- **Cold Wallets:** Offline devices like hardware wallets (e.g. :contentReference[oaicite:3]{index=3}, :contentReference[oaicite:4]{index=4}). Very secure but less convenient.
 
-**Setting One Up**
-1. Download a trusted wallet app
-2. Backup your recovery phrase (seed phrase) securely
-3. Never share your seed phrase
-4. Add funds by buying or receiving from others
-`
+⚠️ Always write down and store your 12/24-word recovery seed phrase safely. If lost, you lose access forever.`
     },
     {
       title: "Sending & Receiving Crypto",
-      content: `
-**Sending**
-- Get the recipient’s public wallet address
-- Choose the correct network (:contentReference[oaicite:10]{index=10} uses BTC network, :contentReference[oaicite:11]{index=11} uses ERC20, :contentReference[oaicite:12]{index=12} uses BEP20)
-- Enter amount and confirm
+      content: `To send crypto:
+1. Copy the recipient’s wallet address
+2. Paste it in your wallet's "Send" field
+3. Enter the amount
+4. Select the correct blockchain network (very important!)
+5. Confirm the transaction
 
-**Receiving**
-- Copy your own public address and send to the sender
-- Wait for the network to confirm the transaction
+To receive crypto:
+- Copy your wallet's receiving address and share it with the sender.
 
-**Safety Tips**
-- Always double-check addresses
-- Use QR codes to avoid errors
-- Start with small test amounts
-- Always pick the correct network
-`
+⚡ Tips:
+- Always double-check the wallet address.
+- Never mix blockchain networks (e.g. don’t send :contentReference[oaicite:5]{index=5} from ERC-20 to :contentReference[oaicite:6]{index=6}).`
     },
     {
       title: "Crypto Safety and Scams",
-      content: `
-**Common Scams**
-- Fake airdrops and giveaways
-- Phishing websites
-- Ponzi or pyramid schemes
-- Fake support agents on social media
+      content: `Crypto is powerful but also attracts scammers. Stay safe by following best practices:
 
-**Safety Rules**
-- Never share your seed phrase
-- Enable 2FA (two-factor authentication)
-- Use only official links and exchanges
-- Be wary of "guaranteed profits"
-`
+✅ Do:
+- Enable 2FA on all accounts
+- Use strong unique passwords
+- Keep your seed phrase offline
+- Use trusted and verified exchanges/wallets
+
+❌ Don’t:
+- Share your private keys
+- Fall for "too good to be true" investment promises
+- Click suspicious links or unknown airdrops
+
+Remember: In crypto, you are your own bank. If you lose your keys, no one can recover them.`
     },
     {
       title: "Trading vs Investing",
-      content: `
-**:contentReference[oaicite:13]{index=13}**
-- Buying and selling crypto frequently (daily or weekly)
-- Goal: profit from short-term price changes
-- Requires constant monitoring and analysis
-- Higher risk, higher reward
+      content: `**Trading** means buying and selling crypto frequently (daily or weekly) to make short-term profits from price fluctuations. It requires continuous monitoring and analysis.
 
-**:contentReference[oaicite:14]{index=14}**
-- Buying crypto and holding long-term (months or years)
-- Goal: grow wealth over time
-- Requires patience, less frequent action
-- Lower risk, lower reward
-`
+**Investing** means buying and holding crypto for months or years, expecting long-term growth. It’s less stressful and focuses on strong projects with good fundamentals.
+
+📝 Summary:
+- Traders chase short-term gains, take quick profits/losses.
+- Investors hold through ups and downs, aiming for bigger future gains.
+
+Both can be profitable, but each needs different skills and mindsets.`
     },
     {
-      title: "How Crypto Trading Works",
-      content: `
-**Market Types**
-- **Spot Market** — buy and sell actual coins
-- **Futures Market** — speculate on future prices using contracts
+      title: "How Trading Works",
+      content: `Crypto trading happens on exchanges like :contentReference[oaicite:7]{index=7}, :contentReference[oaicite:8]{index=8}, and :contentReference[oaicite:9]{index=9}. These platforms connect buyers and sellers using an order book.
 
-**Key Concepts**
-- Exchanges act like marketplaces (e.g. :contentReference[oaicite:15]{index=15}, :contentReference[oaicite:16]{index=16})
-- Traders use charts to analyze trends
-- Prices change based on supply and demand
-- Profit comes from buying low and selling high
-`
+⚙️ How It Works:
+- You place a buy or sell order.
+- When a matching order is found, the trade executes.
+- Price goes up when more people buy (demand) and down when more people sell (supply).
+
+📈 Common strategies:
+- Buy low, sell high (spot trading)
+- Use stop-loss to limit losses
+- Use charts to analyze price trends
+
+Trading requires discipline, planning, and constant learning.`
+    },
+  ],
+
+  intermediate: [
+    {
+      title: "Trading Basics (Spot vs Futures)",
+      content: `**Spot Trading:** Buy and own the actual asset (e.g. buying :contentReference[oaicite:10]{index=10} at $20k and selling at $25k for profit).
+
+**Futures Trading:** Trade contracts that bet on price direction without owning the asset. You can profit from price going up or down.
+
+💡 Futures are riskier because they allow leverage (borrowing funds to trade larger amounts). Beginners should master spot trading first.`
+    },
+    {
+      title: "Market Analysis (Fundamental & Technical)",
+      content: `**Fundamental Analysis (FA):**
+- Studies the real value of a project
+- Check use case, team, partnerships, tokenomics, community
+
+**Technical Analysis (TA):**
+- Studies price movements using charts, indicators, and patterns
+- Helps predict future price trends
+
+💡 Successful traders often combine both FA and TA for better decision-making.`
+    },
+    {
+      title: "Risk Management & Psychology",
+      content: `Risk management is the backbone of profitable trading.
+
+📌 Golden Rules:
+- Risk only 1–2% of your capital per trade
+- Always set stop-losses
+- Don’t trade with borrowed money
+- Control greed and fear
+
+Emotions kill traders. Use logic, not feelings. Have a plan, stick to it, and accept losses as part of the game.`
+    },
+    {
+      title: "Using Exchanges",
+      content: `Exchanges are platforms where you buy/sell crypto. Examples: :contentReference[oaicite:11]{index=11}, :contentReference[oaicite:12]{index=12}, :contentReference[oaicite:13]{index=13}.
+
+⚡ Tips:
+- Use only well-known and regulated exchanges
+- Understand order types (market, limit, stop)
+- Verify fees and withdrawal limits
+- Enable security features (2FA, whitelist addresses)
+
+Practice on demo accounts before using real money.`
+    },
+    {
+      title: "Stablecoins and DeFi Basics",
+      content: `**Stablecoins** are cryptocurrencies pegged to stable assets like the US Dollar (e.g. :contentReference[oaicite:14]{index=14}, :contentReference[oaicite:15]{index=15}). They help avoid volatility.
+
+**DeFi (Decentralized Finance)** lets you lend, borrow, earn interest, and trade without banks.
+
+Popular DeFi tools:
+- Decentralized exchanges (:contentReference[oaicite:16]{index=16})
+- Lending platforms (:contentReference[oaicite:17]{index=17})
+- Yield farming & staking
+
+DeFi gives you full control, but comes with smart contract and market risks.`
     }
   ],
 
-  "NoviceQuiz": [
-    { q: "Which of these is a feature of cryptocurrency?", options: ["Centralized","Government controlled","Decentralized","Paper-based"], answer: 2 },
-    { q: "What does blockchain store?", options: ["Bank notes","Digital transaction records","Physical coins","Passwords"], answer: 1 },
-    { q: "What does a crypto wallet actually store?", options: ["Coins","Private keys","Public addresses","Bank accounts"], answer: 1 },
-    { q: "Which wallet is safer for large funds?", options: ["Hot","Cold","Mobile","Exchange"], answer: 1 },
-    { q: "What is essential to send crypto?", options: ["Bank account","Private key","Public wallet address","Phone number"], answer: 2 },
-    { q: "What should you never share?", options: ["Seed phrase","Public key","Exchange link","QR code"], answer: 0 },
-    { q: "What is a common crypto scam?", options: ["Airdrops","Ponzi schemes","Hardware wallets","VPN"], answer: 1 },
-    { q: "Trading is mainly for:", options: ["Long-term","Short-term profit","Buying goods","Mining"], answer: 1 },
-    { q: "Investing is mainly for:", options: ["Short-term","Long-term growth","Daily trades","Mining"], answer: 1 },
-    { q: "Which is riskier?", options: ["Investing","Trading","Both","Neither"], answer: 1 },
-    { q: "Where do traders buy/sell crypto?", options: ["Wallets","Banks","Exchanges","VPN"], answer: 2 },
-    { q: "What moves crypto prices?", options: ["Random","Government","Supply and demand","VPN"], answer: 2 },
-    { q: "What market involves real coins?", options: ["Spot","Futures","Options","Banks"], answer: 0 },
-    { q: "What makes crypto risky?", options: ["Volatility","Stable prices","Insurance","Regulation"], answer: 0 },
-    { q: "What mindset causes losses?", options: ["Patience","Emotional trading","Risk control","Learning"], answer: 1 }
-  ],
+  professional: [
+    {
+      title: "Advanced Technical Analysis",
+      content: `Advanced TA uses tools like:
+- Fibonacci retracements (measure pullbacks)
+- Elliott waves (predict wave patterns)
+- Volume analysis (confirm trends)
+- Divergences (RSI vs price)
 
-  "Intermediate": [
-    { title: "Technical Analysis Basics", content: "Support, resistance, trends, and indicators." },
-    { title: "Candlestick Patterns", content: "Learn bullish, bearish, and reversal candlesticks." },
-    { title: "Risk Management", content: "Position sizing, stop loss, risk/reward ratio." },
-    { title: "Trading Psychology", content: "Avoid fear and greed. Stick to your plan." },
-    { title: "Understanding Market Cycles", content: "Accumulation, markup, distribution, markdown." },
-    { title: "Using TradingView", content: "Setting up charts and drawing trendlines." },
-    { title: "Intro to Futures & Leverage", content: "How leverage works and its risks." }
-  ],
+Mastering these takes time and practice on real charts.`
+    },
+    {
+      title: "Leverage and Margin Trading",
+      content: `**Leverage** lets you control a large position with small capital.  
+E.g. 10x leverage means $100 can open a $1,000 trade.
 
-  "IntermediateQuiz": [
-    { q: "What shows support levels?", options: ["Price floor","Price ceiling","Volume","Trendline"], answer: 0 },
-    { q: "A doji indicates?", options: ["Strong trend","Indecision","Reversal","Bull run"], answer: 1 },
-    { q: "Risk per trade should be?", options: ["50%","20%","1-2%","10%"], answer: 2 },
-    { q: "Trading psychology is about?", options: ["News","Emotions","Indicators","Tax"], answer: 1 },
-    { q: "Market cycle phase after markup?", options: ["Accumulation","Distribution","Markdown","Breakout"], answer: 1 },
-    { q: "Tool for charting?", options: ["","","Excel","Word"], answer: 0 },
-    { q: "Leverage does what?", options: ["Increases profit/loss","Reduces risk","Slows trades","Adds funds"], answer: 0 },
-    { q: "Stop loss is for?", options: ["Max gain","Limit loss","Double profits","Alerts"], answer: 1 },
-    { q: "Candlestick shows?", options: ["Price action","Volume","Mining","Wallets"], answer: 0 },
-    { q: "Trendline helps?", options: ["Predict trends","Send crypto","Hack wallets","Hold coins"], answer: 0 },
-    { q: "Greed leads to?", options: ["Profit","Loss","More trades","Patience"], answer: 1 },
-    { q: "Accumulation means?", options: ["Buy phase","Sell phase","Crash","Pump"], answer: 0 },
-    { q: "Distribution means?", options: ["Buy","Sell","Wait","Short"], answer: 1 },
-    { q: "High leverage risk?", options: ["More profit","More loss","Safer trades","Lower margin"], answer: 1 },
-    { q: "Best risk/reward?", options: ["1:1","1:2+","1:0.5","2:1"], answer: 1 }
-  ],
+⚠️ Risk: If price moves slightly against you, you can lose everything. Always use stop-loss and low leverage as a professional.`
+    },
+    {
+      title: "On-chain Analysis",
+      content: `This studies real-time blockchain data such as:
+- Wallet flows (whale buying/selling)
+- Supply held by long-term holders
+- Exchange inflows/outflows
+- Gas fees and network activity
 
-  "Professional": [
-    { title: "Advanced Technical Indicators", content: "RSI, MACD, Bollinger Bands." },
-    { title: "On-chain Analysis", content: "Tracking whale wallets and blockchain data." },
-    { title: "Fundamental Analysis", content: "Evaluating projects, teams, tokenomics." },
-    { title: "Algorithmic & Bot Trading", content: "Automated strategies and APIs." },
-    { title: "Portfolio Diversification", content: "Balancing assets to reduce risk." },
-    { title: "Advanced Futures & Options", content: "Hedging and complex strategies." },
-    { title: "Building a Trading Plan", content: "Goals, journaling, review." }
-  ],
+On-chain analysis shows what big players are doing behind the scenes.`
+    },
+    {
+      title: "Algorithmic Trading",
+      content: `Algorithmic trading uses bots and programs to automate trades based on pre-set strategies.
 
-  "ProfessionalQuiz": [
-    { q: "RSI measures?", options: ["Volume","Momentum","Trend","Market cap"], answer: 1 },
-    { q: "MACD shows?", options: ["Momentum","Supply","Team","Wallets"], answer: 0 },
-    { q: "Bollinger bands show?", options: ["Volatility","Profit","Fees","Hacks"], answer: 0 },
-    { q: "On-chain looks at?", options: ["Price charts","Blockchain data","Media","News"], answer: 1 },
-    { q: "Tokenomics means?", options: ["Economics of token","Mining","Marketing","Trading"], answer: 0 },
-    { q: "Bots do?", options: ["Automate trades","Hold wallets","Make charts","Mine"], answer: 0 },
-    { q: "Diversification does?", options: ["Increases risk","Reduces risk","Removes risk","Adds fees"], answer: 1 },
-    { q: "Options are for?", options: ["Speculation","Hedging","Both","Mining"], answer: 2 },
-    { q: "Plan helps?", options: ["Control emotions","Skip rules","More risk","More leverage"], answer: 0 },
-    { q: "MACD stands for?", options: ["Moving Average Convergence Divergence","Market Average Coin Data","Mining and Crypto Deals","Main Asset Chart Data"], answer: 0 },
-    { q: "Best use of RSI?", options: ["Overbought/oversold","Volume","Trends","News"], answer: 0 },
-    { q: "Whale wallets show?", options: ["Big traders","Scams","News","Exchanges"], answer: 0 },
-    { q: "Portfolio means?", options: ["Your holdings","Your gains","Your losses","Your debt"], answer: 0 },
-    { q: "Hedging reduces?", options: ["Risk","Profits","Volume","Fees"], answer: 0 },
-    { q: "Reviewing trades helps?", options: ["Improve","Forget","Lose","Copy"], answer: 0 }
+Pros:
+- Trade 24/7
+- Remove emotions
+- React instantly to market conditions
+
+Cons:
+- Requires coding or bot setup
+- Needs constant monitoring
+
+Popular tools: :contentReference[oaicite:18]{index=18} + :contentReference[oaicite:19]{index=19} + custom scripts.`
+    },
+    {
+      title: "Portfolio Building & Risk Allocation",
+      content: `Building a portfolio means spreading your investment across multiple assets to reduce risk.
+
+📌 Strategy:
+- Mix large-cap, mid-cap, and small-cap coins
+- Allocate only what you can afford to lose
+- Rebalance regularly based on market trends
+- Keep emergency cash aside
+
+Diversification protects you from market crashes.`
+    }
+  ]
+};
+
+export const quizzes = {
+  novice: [
+    { q: "What does cryptocurrency run on?", options: ["Banks","Blockchain","Central server","ATM network"], correct: 1 },
+    { q: "Which wallet is offline?", options: ["Hot wallet","Cold wallet","Exchange account","Mobile wallet"], correct: 1 },
+    { q: "Trading is usually for?", options: ["Long term","Short term","Saving","Spending"], correct: 1 },
+    { q: "Which is safer to share?", options: ["Private key","Seed phrase","Wallet address","Password"], correct: 2 }
+  ],
+  intermediate: [
+    { q: "Spot trading means?", options: ["Buying future contracts","Buying/selling instantly","Holding long term","Mining crypto"], correct: 1 },
+    { q: "TA stands for?", options: ["Technical Analysis","Token Allocation","Trade Account","Trust Algorithm"], correct: 0 },
+    { q: "Max risk per trade?", options: ["10%","1–2%","20%","50%"], correct: 1 }
+  ],
+  professional: [
+    { q: "Leverage increases?", options: ["Safety","Gains and losses","Security","Taxes"], correct: 1 },
+    { q: "On-chain analysis studies?", options: ["Bank data","Blockchain data","Usernames","Exchange UI"], correct: 1 },
+    { q: "Diversifying your portfolio helps to?", options: ["Increase risk","Eliminate profits","Manage risk","Lower income"], correct: 2 }
   ]
 };
