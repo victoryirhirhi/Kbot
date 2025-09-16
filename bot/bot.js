@@ -1,152 +1,150 @@
-import { Telegraf, Markup } from "telegraf";
-import { BOT_TOKEN } from "../config.js";
-import { LESSONS } from "./lessons.js";
+import TelegramBot from 'node-telegram-bot-api';
+import fs from 'fs';
 
-const bot = new Telegraf(BOT_TOKEN);
+const token = process.env.BOT_TOKEN; // already in config.js / vercel env
+const bot = new TelegramBot(token, { polling: true });
 
-// Track user progress
-const userProgress = {};
+// Load lessons and quiz
+const lessons = [
+  "Lesson 1: What is cryptocurrency?\n\nCryptocurrency is a digital or virtual form of money that uses cryptography for security and operates on decentralized networks called blockchains.",
+  "Lesson 2: History of Bitcoin\n\nThe first cryptocurrency, Bitcoin, was created in 2009 by an unknown person/group called Satoshi Nakamoto.",
+  "Lesson 3: Blockchain technology\n\nA blockchain is a decentralized ledger that records transactions across many computers securely.",
+  "Lesson 4: Types of cryptocurrencies\n\nCoins (like Bitcoin) run on their own blockchain. Tokens are built on existing blockchains.",
+  "Lesson 5: Wallets (Hot vs Cold)\n\nHot wallets are online and connected to the internet. Cold wallets are offline and safer for long-term storage.",
+  "Lesson 6: Trading vs Investing\n\nTrading is short-term buying and selling to make quick profits. Investing is holding crypto for long-term growth.",
+  "Lesson 7: How trading works\n\nTrading involves analyzing price charts, placing buy/sell orders, and managing risk to earn profit from price movements."
+];
 
-function getLessonMessage(level, index) {
-  const lesson = LESSONS[level][index];
-  let text = `📘 *${lesson.title}*\n\n`;
-  lesson.content.forEach((part, i) => {
-    text += `${part}\n\n`;
-  });
-  return text;
-}
+const quiz = [
+  {
+    q: "What does cryptocurrency use to secure transactions?",
+    options: ["Emails", "Encryption/cryptography", "Banks", "Government"],
+    answer: 1
+  },
+  {
+    q: "Who created Bitcoin?",
+    options: ["Elon Musk", "Vitalik Buterin", "Satoshi Nakamoto", "Bill Gates"],
+    answer: 2
+  },
+  {
+    q: "What is a blockchain?",
+    options: ["A social media site", "A cloud storage", "A decentralized ledger", "An online bank"],
+    answer: 2
+  },
+  {
+    q: "Which are safer for long term storage?",
+    options: ["Hot wallets", "Cold wallets", "Mobile wallets", "Exchange accounts"],
+    answer: 1
+  },
+  {
+    q: "Trading aims for ____ profits while investing aims for ____ profits.",
+    options: ["short-term, long-term", "long-term, short-term", "medium, small", "small, quick"],
+    answer: 0
+  }
+];
+
+const userState = {}; 
+// structure: { [userId]: { stage: 'lesson'|'quiz', currentLesson, quizIndex, score } }
 
 // Start command
-bot.start((ctx) => {
-  userProgress[ctx.from.id] = { level: null, index: 0, completed: false };
-  ctx.reply(
-    "Welcome! 👋\n\nChoose your learning level:",
-    Markup.inlineKeyboard([
-      [Markup.button.callback("🟢 Novice", "choose_Novice")],
-      [Markup.button.callback("🟡 Intermediate", "choose_Intermediate")],
-      [Markup.button.callback("🔴 Professional", "choose_Professional")],
-    ])
-  );
+bot.onText(/\/start/, (msg) => {
+  const chatId = msg.chat.id;
+  userState[chatId] = { stage: 'lesson', currentLesson: 0, quizIndex: 0, score: 0 };
+  sendLesson(chatId);
 });
 
-// Handle level choice
-bot.action(/choose_(.+)/, (ctx) => {
-  const level = ctx.match[1];
-  if (!LESSONS[level] || LESSONS[level].length === 0) {
-    return ctx.answerCbQuery("⚠️ This level has no lessons yet.");
-  }
+function sendLesson(chatId) {
+  const state = userState[chatId];
+  const lessonIndex = state.currentLesson;
+  const opts = {
+    reply_markup: {
+      inline_keyboard: [
+        ...(lessonIndex > 0 ? [{ text: "⬅️ Previous", callback_data: "prev" }] : []),
+        ...(lessonIndex < lessons.length - 1 ? [{ text: "Next ➡️", callback_data: "next" }] : []),
+        ...(lessonIndex === lessons.length - 1 ? [{ text: "Start Quiz 📝", callback_data: "start_quiz" }] : [])
+      ].map(b => b.length ? b : [b])
+    }
+  };
+  bot.sendMessage(chatId, lessons[lessonIndex], opts);
+}
 
-  userProgress[ctx.from.id] = { level, index: 0, completed: false };
+bot.on('callback_query', (query) => {
+  const chatId = query.message.chat.id;
+  const data = query.data;
+  const state = userState[chatId];
 
-  const msg = getLessonMessage(level, 0);
-  ctx.editMessageText(msg, {
-    parse_mode: "Markdown",
-    ...Markup.inlineKeyboard([
-      [Markup.button.callback("Next ▶️", `next_${level}_0`)],
-    ]),
-  });
-});
+  if (!state) return;
 
-// Handle next lesson
-bot.action(/next_(.+)_(\d+)/, (ctx) => {
-  const level = ctx.match[1];
-  let index = parseInt(ctx.match[2]) + 1;
+  if (state.stage === 'lesson') {
+    if (data === 'next' && state.currentLesson < lessons.length - 1) {
+      state.currentLesson++;
+      bot.editMessageText(lessons[state.currentLesson], {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        reply_markup: {
+          inline_keyboard: [
+            ...(state.currentLesson > 0 ? [{ text: "⬅️ Previous", callback_data: "prev" }] : []),
+            ...(state.currentLesson < lessons.length - 1 ? [{ text: "Next ➡️", callback_data: "next" }] : []),
+            ...(state.currentLesson === lessons.length - 1 ? [{ text: "Start Quiz 📝", callback_data: "start_quiz" }] : [])
+          ].map(b => b.length ? b : [b])
+        }
+      });
+    }
+    if (data === 'prev' && state.currentLesson > 0) {
+      state.currentLesson--;
+      bot.editMessageText(lessons[state.currentLesson], {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        reply_markup: {
+          inline_keyboard: [
+            ...(state.currentLesson > 0 ? [{ text: "⬅️ Previous", callback_data: "prev" }] : []),
+            ...(state.currentLesson < lessons.length - 1 ? [{ text: "Next ➡️", callback_data: "next" }] : []),
+            ...(state.currentLesson === lessons.length - 1 ? [{ text: "Start Quiz 📝", callback_data: "start_quiz" }] : [])
+          ].map(b => b.length ? b : [b])
+        }
+      });
+    }
+    if (data === 'start_quiz') {
+      state.stage = 'quiz';
+      sendQuiz(chatId);
+    }
+  } else if (state.stage === 'quiz') {
+    const q = quiz[state.quizIndex];
+    const chosen = parseInt(data);
 
-  if (index < LESSONS[level].length) {
-    userProgress[ctx.from.id].index = index;
-
-    const msg = getLessonMessage(level, index);
-    ctx.editMessageText(msg, {
-      parse_mode: "Markdown",
-      ...Markup.inlineKeyboard([
-        [
-          ...(index > 0
-            ? [Markup.button.callback("◀️ Previous", `prev_${level}_${index}`)]
-            : []),
-          ...(index < LESSONS[level].length - 1
-            ? [Markup.button.callback("Next ▶️", `next_${level}_${index}`)]
-            : [Markup.button.callback("📋 Take Quiz", `quiz_${level}`)]),
-        ],
-      ]),
-    });
-  }
-});
-
-// Handle previous lesson
-bot.action(/prev_(.+)_(\d+)/, (ctx) => {
-  const level = ctx.match[1];
-  let index = parseInt(ctx.match[2]) - 1;
-
-  if (index >= 0) {
-    userProgress[ctx.from.id].index = index;
-
-    const msg = getLessonMessage(level, index);
-    ctx.editMessageText(msg, {
-      parse_mode: "Markdown",
-      ...Markup.inlineKeyboard([
-        [
-          ...(index > 0
-            ? [Markup.button.callback("◀️ Previous", `prev_${level}_${index}`)]
-            : []),
-          Markup.button.callback("Next ▶️", `next_${level}_${index}`),
-        ],
-      ]),
-    });
-  }
-});
-
-// Show quiz at the end of a level
-bot.action(/quiz_(.+)/, (ctx) => {
-  const level = ctx.match[1];
-  const allQuizzes = LESSONS[level].flatMap((l) => l.quiz || []);
-  if (allQuizzes.length === 0) {
-    return ctx.editMessageText("📋 No quiz available for this level yet.");
-  }
-
-  // Store quiz progress
-  userProgress[ctx.from.id].quizIndex = 0;
-  userProgress[ctx.from.id].quizScore = 0;
-  userProgress[ctx.from.id].quizQuestions = allQuizzes;
-
-  const q = allQuizzes[0];
-  ctx.editMessageText(`❓ *${q.q}*`, {
-    parse_mode: "Markdown",
-    ...Markup.inlineKeyboard(
-      q.options.map((opt, i) =>
-        [Markup.button.callback(opt, `answer_${i}`)]
-      )
-    ),
-  });
-});
-
-// Handle quiz answers
-bot.action(/answer_(\d+)/, (ctx) => {
-  const user = userProgress[ctx.from.id];
-  const answerIndex = parseInt(ctx.match[1]);
-  const currentQ = user.quizQuestions[user.quizIndex];
-
-  if (answerIndex === currentQ.answer) {
-    user.quizScore++;
-  }
-
-  user.quizIndex++;
-
-  if (user.quizIndex < user.quizQuestions.length) {
-    const q = user.quizQuestions[user.quizIndex];
-    ctx.editMessageText(`❓ *${q.q}*`, {
-      parse_mode: "Markdown",
-      ...Markup.inlineKeyboard(
-        q.options.map((opt, i) =>
-          [Markup.button.callback(opt, `answer_${i}`)]
-        )
-      ),
-    });
-  } else {
-    ctx.editMessageText(
-      `🎉 Quiz Completed!\n\nYou scored *${user.quizScore} / ${user.quizQuestions.length}*`,
-      { parse_mode: "Markdown" }
-    );
+    if (!isNaN(chosen)) {
+      if (chosen === q.answer) {
+        state.score++;
+        bot.sendMessage(chatId, "✅ Correct");
+      } else {
+        bot.sendMessage(chatId, "❌ Wrong");
+      }
+      state.quizIndex++;
+      if (state.quizIndex < quiz.length) {
+        sendQuiz(chatId);
+      } else {
+        const percent = Math.round((state.score / quiz.length) * 100);
+        if (percent >= 70) {
+          bot.sendMessage(chatId, `🎉 You passed with ${percent}%!\n`, {
+            reply_markup: {
+              inline_keyboard: [[{ text: "Proceed to Intermediate ➡️", callback_data: "go_intermediate" }]]
+            }
+          });
+        } else {
+          bot.sendMessage(chatId, `❌ You scored ${percent}%. Try again with /start`);
+        }
+      }
+    }
   }
 });
 
-export default bot;
+function sendQuiz(chatId) {
+  const state = userState[chatId];
+  const q = quiz[state.quizIndex];
+  const opts = {
+    reply_markup: {
+      inline_keyboard: q.options.map((o, i) => [{ text: o, callback_data: i.toString() }])
+    }
+  };
+  bot.sendMessage(chatId, `📝 ${q.q}`, opts);
+}
