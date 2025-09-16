@@ -4,150 +4,149 @@ import { LESSONS } from "./lessons.js";
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// In-memory user state
-const users = {}; // userId => { level: 'Novice', lessonIndex:0, partIndex:0, quizState: null }
+// Track user progress
+const userProgress = {};
 
-// Helpers
-function ensureUser(id) {
-  if (!users[id]) users[id] = { level: 'Novice', lessonIndex: 0, partIndex: 0, quizState: null };
-  return users[id];
+function getLessonMessage(level, index) {
+  const lesson = LESSONS[level][index];
+  let text = `📘 *${lesson.title}*\n\n`;
+  lesson.content.forEach((part, i) => {
+    text += `${part}\n\n`;
+  });
+  return text;
 }
 
-function sendPart(ctx, user) {
-  const levelData = LESSONS[user.level];
-  if (!levelData) return ctx.reply('No lessons for this level.');
-  const lesson = levelData[user.lessonIndex];
-  if (!lesson) return ctx.reply('Lesson not found.');
-  const partText = lesson.parts[user.partIndex];
-  const buttons = [];
-  if (user.partIndex < lesson.parts.length - 1) {
-    buttons.push(Markup.button.callback('Next Part ➡️', 'next_part'));
-  } else {
-    // end of lesson: show Next Lesson and (level end will trigger level quiz when appropriate)
-    buttons.push(Markup.button.callback('Next Lesson ⏭', 'next_lesson'));
-  }
-  buttons.push(Markup.button.callback('Back to Menu', 'menu'));
-  return ctx.replyWithMarkdown(partText, Markup.inlineKeyboard([buttons]));
-}
-
-async function startLevel(ctx, level) {
-  const id = ctx.from.id;
-  const user = ensureUser(id);
-  user.level = level;
-  user.lessonIndex = 0;
-  user.partIndex = 0;
-  user.quizState = null;
-  await sendPart(ctx, user);
-}
-
-// Bot handlers
-bot.start(async (ctx) => {
-  const id = ctx.from.id;
-  ensureUser(id);
-  await ctx.reply('Welcome to Crypto Academy! Choose your level:', Markup.inlineKeyboard([
-    [Markup.button.callback('🟢 Novice', 'level_Novice')],
-    [Markup.button.callback('🟡 Intermediate', 'level_Intermediate')],
-    [Markup.button.callback('🔴 Professional', 'level_Professional')]
-  ]));
+// Start command
+bot.start((ctx) => {
+  userProgress[ctx.from.id] = { level: null, index: 0, completed: false };
+  ctx.reply(
+    "Welcome! 👋\n\nChoose your learning level:",
+    Markup.inlineKeyboard([
+      [Markup.button.callback("🟢 Novice", "choose_Novice")],
+      [Markup.button.callback("🟡 Intermediate", "choose_Intermediate")],
+      [Markup.button.callback("🔴 Professional", "choose_Professional")],
+    ])
+  );
 });
 
-bot.action(/level_(.+)/, async (ctx) => {
+// Handle level choice
+bot.action(/choose_(.+)/, (ctx) => {
   const level = ctx.match[1];
-  await startLevel(ctx, level);
-  await ctx.answerCbQuery();
-});
-
-bot.action('next_part', async (ctx) => {
-  const id = ctx.from.id;
-  const user = ensureUser(id);
-  user.partIndex++;
-  await sendPart(ctx, user);
-  await ctx.answerCbQuery();
-});
-
-bot.action('next_lesson', async (ctx) => {
-  const id = ctx.from.id;
-  const user = ensureUser(id);
-  user.lessonIndex++;
-  user.partIndex = 0;
-
-  const levelData = LESSONS[user.level];
-  if (user.lessonIndex >= levelData.length) {
-    // Level complete -> send level quiz prompt
-    user.quizState = { index: 0, score: 0 };
-    await ctx.reply('🎯 You have completed this level. Ready for the level quiz?', Markup.inlineKeyboard([
-      [Markup.button.callback('Start Level Quiz 📝', 'start_level_quiz')],
-      [Markup.button.callback('Back to Menu', 'menu')]
-    ]));
-  } else {
-    await sendPart(ctx, user);
+  if (!LESSONS[level] || LESSONS[level].length === 0) {
+    return ctx.answerCbQuery("⚠️ This level has no lessons yet.");
   }
-  await ctx.answerCbQuery();
+
+  userProgress[ctx.from.id] = { level, index: 0, completed: false };
+
+  const msg = getLessonMessage(level, 0);
+  ctx.editMessageText(msg, {
+    parse_mode: "Markdown",
+    ...Markup.inlineKeyboard([
+      [Markup.button.callback("Next ▶️", `next_${level}_0`)],
+    ]),
+  });
 });
 
-bot.action('menu', async (ctx) => {
-  await ctx.reply('Choose your level:', Markup.inlineKeyboard([
-    [Markup.button.callback('🟢 Novice', 'level_Novice')],
-    [Markup.button.callback('🟡 Intermediate', 'level_Intermediate')],
-    [Markup.button.callback('🔴 Professional', 'level_Professional')]
-  ]));
-  await ctx.answerCbQuery();
-});
+// Handle next lesson
+bot.action(/next_(.+)_(\d+)/, (ctx) => {
+  const level = ctx.match[1];
+  let index = parseInt(ctx.match[2]) + 1;
 
-// Level quiz handlers (Novice only for now)
-bot.action('start_level_quiz', async (ctx) => {
-  const id = ctx.from.id;
-  const user = ensureUser(id);
-  user.quizState = { index: 0, score: 0 };
-  await sendQuizQuestion(ctx, id);
-  await ctx.answerCbQuery();
-});
+  if (index < LESSONS[level].length) {
+    userProgress[ctx.from.id].index = index;
 
-// Define novice level quiz here (5 questions)
-const noviceQuiz = [
-  { q: 'What does a crypto wallet actually store?', options: ['Your coins', 'Your private keys', 'Your transactions', 'Your bank account'], answer: 1 },
-  { q: 'What technology powers cryptocurrencies?', options: ['Cloud', 'Blockchain', 'Database', 'VPN'], answer: 1 },
-  { q: 'Which of these is a scam sign?', options: ['Strong password', '2FA enabled', 'Promise of guaranteed returns', 'Cold wallet'], answer: 2 },
-  { q: 'Before sending crypto, you should always check…', options: ['Gas price', 'Network', 'Recipient’s name', 'Phone number'], answer: 1 },
-  { q: 'What does decentralized mean?', options: ['Controlled by one bank', 'Managed by one company', 'Controlled by many users', 'Hosted on one computer'], answer: 2 }
-];
-
-async function sendQuizQuestion(ctx, userId) {
-  const user = ensureUser(userId);
-  const idx = user.quizState.index;
-  const q = noviceQuiz[idx];
-  const buttons = q.options.map((opt, i) => Markup.button.callback(opt, `quiz_answer_${i}`));
-  await ctx.reply(`❓ *Q${idx+1}:* ${q.q}`, Markup.inlineKeyboard(buttons));
-}
-
-bot.action(/quiz_answer_(\d+)/, async (ctx) => {
-  const id = ctx.from.id;
-  const user = ensureUser(id);
-  const selected = Number(ctx.match[1]);
-  const q = noviceQuiz[user.quizState.index];
-  if (selected === q.answer) user.quizState.score++;
-  user.quizState.index++;
-  if (user.quizState.index < noviceQuiz.length) {
-    await sendQuizQuestion(ctx, id);
-  } else {
-    const score = user.quizState.score;
-    await ctx.reply(`🏁 Quiz complete. Your score: ${score}/${noviceQuiz.length}`);
-    // Promote logic: if score >=4, advance level
-    if (score >= 4) {
-      user.level = 'Intermediate';
-      user.lessonIndex = 0;
-      user.partIndex = 0;
-      user.quizState = null;
-      await ctx.reply('🎉 You passed Novice! Intermediate unlocked. Return to menu or continue.', Markup.inlineKeyboard([[Markup.button.callback('Go to Intermediate', 'level_Intermediate')]]));
-    } else {
-      await ctx.reply('You did not pass. Review the lessons and try again. Type /start to begin.');
-      user.lessonIndex = 0;
-      user.partIndex = 0;
-      user.quizState = null;
-    }
+    const msg = getLessonMessage(level, index);
+    ctx.editMessageText(msg, {
+      parse_mode: "Markdown",
+      ...Markup.inlineKeyboard([
+        [
+          ...(index > 0
+            ? [Markup.button.callback("◀️ Previous", `prev_${level}_${index}`)]
+            : []),
+          ...(index < LESSONS[level].length - 1
+            ? [Markup.button.callback("Next ▶️", `next_${level}_${index}`)]
+            : [Markup.button.callback("📋 Take Quiz", `quiz_${level}`)]),
+        ],
+      ]),
+    });
   }
-  await ctx.answerCbQuery();
 });
 
-// Export bot instance
+// Handle previous lesson
+bot.action(/prev_(.+)_(\d+)/, (ctx) => {
+  const level = ctx.match[1];
+  let index = parseInt(ctx.match[2]) - 1;
+
+  if (index >= 0) {
+    userProgress[ctx.from.id].index = index;
+
+    const msg = getLessonMessage(level, index);
+    ctx.editMessageText(msg, {
+      parse_mode: "Markdown",
+      ...Markup.inlineKeyboard([
+        [
+          ...(index > 0
+            ? [Markup.button.callback("◀️ Previous", `prev_${level}_${index}`)]
+            : []),
+          Markup.button.callback("Next ▶️", `next_${level}_${index}`),
+        ],
+      ]),
+    });
+  }
+});
+
+// Show quiz at the end of a level
+bot.action(/quiz_(.+)/, (ctx) => {
+  const level = ctx.match[1];
+  const allQuizzes = LESSONS[level].flatMap((l) => l.quiz || []);
+  if (allQuizzes.length === 0) {
+    return ctx.editMessageText("📋 No quiz available for this level yet.");
+  }
+
+  // Store quiz progress
+  userProgress[ctx.from.id].quizIndex = 0;
+  userProgress[ctx.from.id].quizScore = 0;
+  userProgress[ctx.from.id].quizQuestions = allQuizzes;
+
+  const q = allQuizzes[0];
+  ctx.editMessageText(`❓ *${q.q}*`, {
+    parse_mode: "Markdown",
+    ...Markup.inlineKeyboard(
+      q.options.map((opt, i) =>
+        [Markup.button.callback(opt, `answer_${i}`)]
+      )
+    ),
+  });
+});
+
+// Handle quiz answers
+bot.action(/answer_(\d+)/, (ctx) => {
+  const user = userProgress[ctx.from.id];
+  const answerIndex = parseInt(ctx.match[1]);
+  const currentQ = user.quizQuestions[user.quizIndex];
+
+  if (answerIndex === currentQ.answer) {
+    user.quizScore++;
+  }
+
+  user.quizIndex++;
+
+  if (user.quizIndex < user.quizQuestions.length) {
+    const q = user.quizQuestions[user.quizIndex];
+    ctx.editMessageText(`❓ *${q.q}*`, {
+      parse_mode: "Markdown",
+      ...Markup.inlineKeyboard(
+        q.options.map((opt, i) =>
+          [Markup.button.callback(opt, `answer_${i}`)]
+        )
+      ),
+    });
+  } else {
+    ctx.editMessageText(
+      `🎉 Quiz Completed!\n\nYou scored *${user.quizScore} / ${user.quizQuestions.length}*`,
+      { parse_mode: "Markdown" }
+    );
+  }
+});
+
 export default bot;
