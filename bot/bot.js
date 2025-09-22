@@ -1,117 +1,194 @@
-import { Telegraf, Markup } from "telegraf";
-import lessonsData from "./lessons.json" assert { type: "json" };
-import { BOT_TOKEN } from "../config.js";
+const { Telegraf, Markup } = require("telegraf");
+const { BOT_TOKEN } = require("../config");
+const LESSONS = require("../lessons");
+
+if (!BOT_TOKEN) throw new Error("BOT_TOKEN missing in config.js");
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// Track user state
-const userProgress = {};
+// In-memory session
+const sessions = {};
 
-function getLesson(level, index) {
-  const lesson = lessonsData[level].lessons[index];
-  return `📘 *${lesson.title}*\n\n${lesson.content}`;
+function getSession(ctx) {
+  const id = ctx.chat.id;
+  if (!sessions[id]) {
+    sessions[id] = {
+      level: "Novice",
+      lessonIndex: 0,
+      quizMode: false,
+      quizIndex: 0,
+      score: 0
+    };
+  }
+  return sessions[id];
 }
 
+// Start Command
 bot.start((ctx) => {
-  userProgress[ctx.from.id] = { level: "novice", index: 0, score: 0, quizMode: false };
+  const session = getSession(ctx);
+  session.level = "Novice";
+  session.lessonIndex = 0;
+  session.quizMode = false;
+  session.quizIndex = 0;
+  session.score = 0;
+
   ctx.reply(
-    `👋 Welcome ${ctx.from.first_name}!\n\nLet's begin your crypto journey.`,
-    Markup.inlineKeyboard([Markup.button.callback("Start Novice ➡️", "next")])
+    "🚀 Welcome to Crypto Learning Bot!\n\nWe’ll start with *Novice Level*. Ready?",
+    Markup.inlineKeyboard([[Markup.button.callback("Start Lesson 1 ▶️", "nextLesson")]])
   );
 });
 
-bot.action(["next", "prev"], async (ctx) => {
-  const id = ctx.from.id;
-  const state = userProgress[id];
-  const level = lessonsData[state.level];
-  const direction = ctx.match[0];
+// Show Lesson
+function showLesson(ctx) {
+  const session = getSession(ctx);
+  const { level, lessonIndex } = session;
+  const lessons = LESSONS[level].lessons;
 
-  if (!state.quizMode) {
-    if (direction === "next" && state.index < level.lessons.length - 1) state.index++;
-    else if (direction === "prev" && state.index > 0) state.index--;
-    else if (direction === "next" && state.index === level.lessons.length - 1) {
-      state.quizMode = true;
-      state.index = 0;
-      return ctx.editMessageText(
-        `✅ Lessons complete!\nNow let's test your knowledge with a short quiz.`,
-        Markup.inlineKeyboard([Markup.button.callback("Start Quiz 📝", "quiz")])
-      );
+  if (lessonIndex < 0 || lessonIndex >= lessons.length) return;
+
+  const lesson = lessons[lessonIndex];
+  const nav = [];
+
+  if (lessonIndex > 0) nav.push(Markup.button.callback("⏮ Previous", "prevLesson"));
+  if (lessonIndex < lessons.length - 1) {
+    nav.push(Markup.button.callback("Next ⏭", "nextLesson"));
+  } else {
+    nav.push(Markup.button.callback("📝 Take Quiz", "startQuiz"));
+  }
+
+  ctx.editMessageText(
+    `📘 *${level}* - ${lesson.title}\n\n${lesson.content}`,
+    { parse_mode: "Markdown", ...Markup.inlineKeyboard([nav]) }
+  ).catch(() => {
+    ctx.reply(
+      `📘 *${level}* - ${lesson.title}\n\n${lesson.content}`,
+      { parse_mode: "Markdown", ...Markup.inlineKeyboard([nav]) }
+    );
+  });
+}
+
+// Show Quiz Question
+function showQuiz(ctx) {
+  const session = getSession(ctx);
+  const { level, quizIndex } = session;
+  const quiz = LESSONS[level].quiz.questions;
+
+  if (quizIndex >= quiz.length) {
+    const percent = Math.round((session.score / quiz.length) * 100);
+    const pass = percent >= LESSONS[level].quiz.passingScore;
+
+    let msg = `✅ Quiz Finished!\nYour Score: *${session.score}/${quiz.length}* (${percent}%)\n`;
+
+    if (pass) {
+      if (level === "Novice") {
+        msg += "\n🎉 You passed Novice Level!\n➡️ Proceed to Intermediate.";
+      } else if (level === "Intermediate") {
+        msg += "\n🔥 You passed Intermediate!\n➡️ Proceed to Professional.";
+      } else {
+        msg += "\n🏆 Congratulations! You completed all levels.";
+      }
+    } else {
+      msg += "\n❌ You did not pass. Please review lessons and try again.";
     }
 
-    await ctx.editMessageText(
-      getLesson(state.level, state.index),
-      {
-        parse_mode: "Markdown",
-        ...Markup.inlineKeyboard([
-          ...(state.index > 0 ? [Markup.button.callback("⬅️ Previous", "prev")] : []),
-          Markup.button.callback("Next ➡️", "next")
-        ])
-      }
-    );
-  }
-});
+    const nextButtons = [];
+    if (pass) {
+      if (level === "Novice")
+        nextButtons.push(Markup.button.callback("Proceed to Intermediate ➡️", "nextLevel"));
+      if (level === "Intermediate")
+        nextButtons.push(Markup.button.callback("Proceed to Professional ➡️", "nextLevel"));
+    }
+    nextButtons.push(Markup.button.callback("🔄 Retry Quiz", "retryQuiz"));
 
-bot.action("quiz", async (ctx) => {
-  const id = ctx.from.id;
-  const state = userProgress[id];
-  const level = lessonsData[state.level];
-  const q = level.quiz[state.index];
-
-  await ctx.editMessageText(
-    `📝 *Quiz ${state.index + 1}:* ${q.question}`,
-    {
+    ctx.editMessageText(msg, {
       parse_mode: "Markdown",
-      ...Markup.inlineKeyboard(
-        q.options.map((opt) => [Markup.button.callback(opt, `answer:${opt}`)])
-      )
-    }
+      ...Markup.inlineKeyboard([nextButtons])
+    }).catch(() => {
+      ctx.reply(msg, {
+        parse_mode: "Markdown",
+        ...Markup.inlineKeyboard([nextButtons])
+      });
+    });
+
+    return;
+  }
+
+  const q = quiz[quizIndex];
+  const options = q.options.map((opt, i) =>
+    [Markup.button.callback(opt, `answer_${i}`)]
   );
+
+  ctx.editMessageText(
+    `❓ Q${quizIndex + 1}: ${q.q}`,
+    Markup.inlineKeyboard(options)
+  ).catch(() => {
+    ctx.reply(
+      `❓ Q${quizIndex + 1}: ${q.q}`,
+      Markup.inlineKeyboard(options)
+    );
+  });
+}
+
+// Navigation
+bot.action("nextLesson", (ctx) => {
+  const session = getSession(ctx);
+  session.lessonIndex++;
+  showLesson(ctx);
 });
 
-bot.action(/answer:(.+)/, async (ctx) => {
-  const id = ctx.from.id;
-  const answer = ctx.match[1];
-  const state = userProgress[id];
-  const level = lessonsData[state.level];
-  const q = level.quiz[state.index];
-
-  if (answer === q.answer) {
-    state.score++;
-    await ctx.answerCbQuery("✅ Correct!");
-  } else {
-    await ctx.answerCbQuery("❌ Wrong!");
-  }
-
-  if (state.index < level.quiz.length - 1) {
-    state.index++;
-    return bot.telegram.sendMessage(
-      id,
-      `📝 *Quiz ${state.index + 1}:* ${level.quiz[state.index].question}`,
-      {
-        parse_mode: "Markdown",
-        ...Markup.inlineKeyboard(
-          level.quiz[state.index].options.map((opt) => [Markup.button.callback(opt, `answer:${opt}`)])
-        )
-      }
-    );
-  } else {
-    const percent = Math.round((state.score / level.quiz.length) * 100);
-    const passed = percent >= 70;
-    userProgress[id] = { level: passed ? "intermediate" : "novice", index: 0, score: 0, quizMode: false };
-
-    return ctx.editMessageText(
-      `🎯 Quiz complete!\nYour score: *${percent}%*`,
-      {
-        parse_mode: "Markdown",
-        ...Markup.inlineKeyboard([
-          Markup.button.callback(
-            passed ? "Proceed to Intermediate ➡️" : "Retry Novice 🔄",
-            "next"
-          )
-        ])
-      }
-    );
-  }
+bot.action("prevLesson", (ctx) => {
+  const session = getSession(ctx);
+  session.lessonIndex--;
+  showLesson(ctx);
 });
 
-export default bot;
+// Start Quiz
+bot.action("startQuiz", (ctx) => {
+  const session = getSession(ctx);
+  session.quizMode = true;
+  session.quizIndex = 0;
+  session.score = 0;
+  showQuiz(ctx);
+});
+
+// Quiz Answer
+bot.action(/answer_(\d+)/, (ctx) => {
+  const session = getSession(ctx);
+  const choice = parseInt(ctx.match[1]);
+  const { level, quizIndex } = session;
+  const quiz = LESSONS[level].quiz.questions;
+
+  if (quiz[quizIndex].answer === choice) session.score++;
+
+  session.quizIndex++;
+  showQuiz(ctx);
+});
+
+// Retry Quiz
+bot.action("retryQuiz", (ctx) => {
+  const session = getSession(ctx);
+  session.quizIndex = 0;
+  session.score = 0;
+  showQuiz(ctx);
+});
+
+// Next Level
+bot.action("nextLevel", (ctx) => {
+  const session = getSession(ctx);
+
+  if (session.level === "Novice") session.level = "Intermediate";
+  else if (session.level === "Intermediate") session.level = "Professional";
+  else {
+    ctx.reply("🏆 You have completed all levels!");
+    return;
+  }
+
+  session.lessonIndex = 0;
+  session.quizMode = false;
+  session.quizIndex = 0;
+  session.score = 0;
+
+  showLesson(ctx);
+});
+
+module.exports = bot;
